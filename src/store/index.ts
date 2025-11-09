@@ -13,7 +13,12 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         // Firebase Timestampの非シリアライズ可能なデータを無視
-        ignoredActions: ['auth/signUpWithEmail/fulfilled', 'auth/signInWithEmail/fulfilled'],
+        ignoredActions: [
+          'auth/signUpWithEmail/fulfilled',
+          'auth/signInWithEmail/fulfilled',
+          'auth/signInWithGoogle/fulfilled',
+          'auth/setUser',
+        ],
         ignoredPaths: ['auth.user.createdAt', 'content.contents', 'list.lists'],
       },
     }),

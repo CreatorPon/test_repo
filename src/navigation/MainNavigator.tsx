@@ -6,7 +6,7 @@ import HomeNavigator from './HomeNavigator';
 import SearchNavigator from './SearchNavigator';
 import ListsNavigator from './ListsNavigator';
 import ProfileNavigator from './ProfileNavigator';
-import AddContentModal from '../screens/AddContentModal';
+import AddPlaceholder from '../screens/AddPlaceholder';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -48,18 +48,8 @@ const MainNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Add"
-        component={AddContentModal}
-        options={{
-          tabBarLabel: '追加',
-          tabBarButton: (props) => <props.children {...props} />,
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            // モーダルとして表示する場合の処理
-            // 実装は後ほど
-          },
-        })}
+        component={AddPlaceholder}
+        options={{ tabBarLabel: '追加' }}
       />
       <Tab.Screen
         name="Lists"
