@@ -13,7 +13,8 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../types';
 import { useAppDispatch } from '../hooks/useAppDispatch';
-import { signInWithEmail } from '../store/slices/authSlice';
+import { signInWithEmail, setUser } from '../store/slices/authSlice';
+import { Timestamp } from 'firebase/firestore';
 
 type LoginScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -41,6 +42,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // デモモード：開発中に後続画面を確認するため
+  const handleDemoLogin = () => {
+    const demoUser = {
+      uid: 'demo-user-123',
+      email: 'demo@example.com',
+      displayName: 'デモユーザー',
+      photoURL: '',
+      createdAt: Timestamp.now(),
+    };
+    dispatch(setUser(demoUser));
   };
 
   return (
@@ -81,6 +94,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           ) : (
             <Text style={styles.buttonText}>ログイン</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={handleDemoLogin}
+        >
+          <Text style={styles.demoButtonText}>デモモードで続行（開発用）</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -140,6 +160,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  demoButton: {
+    height: 50,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  demoButtonText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   signUpLink: {
     marginTop: 24,
