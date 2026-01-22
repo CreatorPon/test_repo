@@ -137,20 +137,24 @@ const AddContentModal: React.FC = () => {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
+      // Firestoreはundefinedをサポートしないため、値がある場合のみフィールドを追加
+      const contentData: any = {
+        contentType,
+        title,
+        tags: tagsArray,
+        createdAt: Timestamp.now(),
+      };
+
+      if (url) contentData.sourceUrl = url;
+      if (description) contentData.description = description;
+      if (thumbnailUrl) contentData.thumbnailUrl = thumbnailUrl;
+      if (fileUrl) contentData.fileUrl = fileUrl;
+      if (location) contentData.location = location;
+
       await dispatch(
         createContent({
           userId: user.uid,
-          contentData: {
-            contentType,
-            sourceUrl: url || undefined,
-            title,
-            description: description || undefined,
-            thumbnailUrl: thumbnailUrl || undefined,
-            fileUrl: fileUrl || undefined,
-            tags: tagsArray,
-            location: location || undefined,
-            createdAt: Timestamp.now(),
-          },
+          contentData,
         })
       ).unwrap();
 
