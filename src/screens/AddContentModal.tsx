@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -174,9 +176,13 @@ const AddContentModal: React.FC = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.sectionTitle}>コンテンツタイプ</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>コンテンツタイプ</Text>
         <View style={styles.typeButtons}>
           <TouchableOpacity
             style={[
@@ -344,8 +350,9 @@ const AddContentModal: React.FC = () => {
             <Text style={styles.saveButtonText}>保存</Text>
           )}
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
