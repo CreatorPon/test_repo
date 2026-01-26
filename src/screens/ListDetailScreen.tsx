@@ -6,16 +6,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { ListsStackParamList, MainTabParamList, List, Content } from '../types';
 import { getListById } from '../services/listService';
 import { getContentById } from '../services/contentService';
 import ContentCard from '../components/common/ContentCard';
+import { useAppDispatch } from '../hooks/useAppDispatch';
+import { removeContentFromList } from '../store/slices/listSlice';
 
 type ListDetailScreenNavigationProp = CompositeNavigationProp<
   StackNavigationProp<ListsStackParamList, 'ListDetail'>,
