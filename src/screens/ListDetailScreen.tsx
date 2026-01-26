@@ -34,6 +34,7 @@ interface Props {
 
 const ListDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { listId } = route.params;
+  const dispatch = useAppDispatch();
   const [list, setList] = useState<List | null>(null);
   const [contents, setContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,37 @@ const ListDetailScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleEdit = () => {
     navigation.navigate('EditList', { listId });
+  };
+
+  const handleRemoveContent = (contentId: string) => {
+    Alert.alert(
+      'コンテンツを削除',
+      'このリストからコンテンツを削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(removeContentFromList({ listId, contentId })).unwrap();
+              loadListData();
+            } catch (error) {
+              Alert.alert('エラー', 'コンテンツの削除に失敗しました');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderRightActions = () => {
+    return (
+      <View style={styles.deleteAction}>
+        <Ionicons name="trash" size={24} color="#fff" />
+        <Text style={styles.deleteText}>削除</Text>
+      </View>
+    );
   };
 
   if (loading) {
@@ -115,15 +147,20 @@ const ListDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         data={contents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ContentCard
-            content={item}
-            onPress={() =>
-              navigation.navigate('Home', {
-                screen: 'ContentDetail',
-                params: { contentId: item.id },
-              })
-            }
-          />
+          <Swipeable
+            renderRightActions={renderRightActions}
+            onSwipeableOpen={() => handleRemoveContent(item.id)}
+          >
+            <ContentCard
+              content={item}
+              onPress={() =>
+                navigation.navigate('Home', {
+                  screen: 'ContentDetail',
+                  params: { contentId: item.id },
+                })
+              }
+            />
+          </Swipeable>
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
@@ -200,6 +237,19 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#666',
+  },
+  deleteAction: {
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  deleteText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginTop: 4,
   },
 });
 

@@ -53,6 +53,14 @@ export const deleteContent = createAsyncThunk(
   }
 );
 
+export const deleteContentWithCleanup = createAsyncThunk(
+  'content/deleteContentWithCleanup',
+  async ({ userId, contentId }: { userId: string; contentId: string }) => {
+    await contentService.deleteContentWithCleanup(userId, contentId);
+    return contentId;
+  }
+);
+
 export const searchContents = createAsyncThunk(
   'content/searchContents',
   async ({ userId, filter }: { userId: string; filter: SearchFilter }) => {
@@ -120,6 +128,22 @@ const contentSlice = createSlice({
       state.contents = state.contents.filter(
         (content) => content.id !== action.payload
       );
+    });
+
+    // コンテンツ削除（クリーンアップ付き）
+    builder.addCase(deleteContentWithCleanup.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(deleteContentWithCleanup.fulfilled, (state, action) => {
+      state.loading = false;
+      state.contents = state.contents.filter(
+        (content) => content.id !== action.payload
+      );
+    });
+    builder.addCase(deleteContentWithCleanup.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.error.message || 'Failed to delete content';
     });
 
     // コンテンツ検索

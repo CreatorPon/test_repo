@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
@@ -19,6 +20,7 @@ import { getContentById } from '../services/contentService';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchUserLists, addContentToList, removeContentFromList } from '../store/slices/listSlice';
+import { deleteContentWithCleanup } from '../store/slices/contentSlice';
 
 type ContentDetailScreenNavigationProp = StackNavigationProp<
   HomeStackParamList,
@@ -48,16 +50,24 @@ const ContentDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [contentId, user]);
 
-  // ヘッダーに「リストに追加」ボタンを設定
+  // ヘッダーに「リストに追加」と「削除」ボタンを設定
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => setModalVisible(true)}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="list" size={24} color="#007AFF" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="list" size={24} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);
@@ -98,6 +108,29 @@ const ContentDetailScreen: React.FC<Props> = ({ route, navigation }) => {
     } catch (error) {
       console.error('Failed to toggle list:', error);
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'コンテンツを削除',
+      'このコンテンツを削除しますか？すべてのリストから削除されます。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user) return;
+            try {
+              await dispatch(deleteContentWithCleanup({ userId: user.uid, contentId })).unwrap();
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('エラー', 'コンテンツの削除に失敗しました');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {

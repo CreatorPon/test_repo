@@ -114,6 +114,15 @@ export const removeContentFromList = async (
   await updateList(listId, { contentIds: updatedContentIds });
 };
 
+// 特定のコンテンツを含むすべてのリストを取得
+export const getListsContainingContent = async (
+  userId: string,
+  contentId: string
+): Promise<List[]> => {
+  const allLists = await getUserLists(userId);
+  return allLists.filter((list) => list.contentIds.includes(contentId));
+};
+
 // 公開リストを取得（他のユーザーのリスト）
 export const getPublicLists = async (userId?: string): Promise<List[]> => {
   let q = query(

@@ -16,6 +16,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
 import { Content, ContentType, Location, SearchFilter } from '../types';
+import { getListsContainingContent, removeContentFromList } from './listService';
 
 // コンテンツを作成
 export const createContent = async (
@@ -97,6 +98,23 @@ export const updateContent = async (
 export const deleteContent = async (contentId: string): Promise<void> => {
   const docRef = doc(db, 'contents', contentId);
   await deleteDoc(docRef);
+};
+
+// コンテンツを削除し、すべてのリストから削除
+export const deleteContentWithCleanup = async (
+  userId: string,
+  contentId: string
+): Promise<void> => {
+  // コンテンツを含むすべてのリストを取得
+  const listsContainingContent = await getListsContainingContent(userId, contentId);
+
+  // すべてのリストからコンテンツを削除
+  await Promise.all(
+    listsContainingContent.map((list) => removeContentFromList(list.id, contentId))
+  );
+
+  // コンテンツ自体を削除
+  await deleteContent(contentId);
 };
 
 // 検索フィルターに基づいてコンテンツを取得
