@@ -10,14 +10,16 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { ListsStackParamList, List, Content } from '../types';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { ListsStackParamList, MainTabParamList, List, Content } from '../types';
 import { getListById } from '../services/listService';
 import { getContentById } from '../services/contentService';
 import ContentCard from '../components/common/ContentCard';
 
-type ListDetailScreenNavigationProp = StackNavigationProp<
-  ListsStackParamList,
-  'ListDetail'
+type ListDetailScreenNavigationProp = CompositeNavigationProp<
+  StackNavigationProp<ListsStackParamList, 'ListDetail'>,
+  BottomTabNavigationProp<MainTabParamList>
 >;
 type ListDetailScreenRouteProp = RouteProp<ListsStackParamList, 'ListDetail'>;
 
@@ -109,7 +111,15 @@ const ListDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         data={contents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ContentCard content={item} onPress={() => {}} />
+          <ContentCard
+            content={item}
+            onPress={() =>
+              navigation.navigate('Home', {
+                screen: 'ContentDetail',
+                params: { contentId: item.id },
+              })
+            }
+          />
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={

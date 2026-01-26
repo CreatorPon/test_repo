@@ -8,12 +8,17 @@ import {
   TouchableOpacity,
   Linking,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { HomeStackParamList, Content } from '../types';
+import { HomeStackParamList, Content, List } from '../types';
 import { getContentById } from '../services/contentService';
+import { useAppDispatch } from '../hooks/useAppDispatch';
+import { useAppSelector } from '../hooks/useAppSelector';
+import { fetchUserLists, addContentToList, removeContentFromList } from '../store/slices/listSlice';
 
 type ContentDetailScreenNavigationProp = StackNavigationProp<
   HomeStackParamList,
@@ -26,14 +31,36 @@ interface Props {
   route: ContentDetailScreenRouteProp;
 }
 
-const ContentDetailScreen: React.FC<Props> = ({ route }) => {
+const ContentDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { contentId } = route.params;
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const { lists } = useAppSelector((state) => state.list);
+
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     loadContent();
-  }, [contentId]);
+    if (user) {
+      dispatch(fetchUserLists(user.uid));
+    }
+  }, [contentId, user]);
+
+  // ヘッダーに「リストに追加」ボタンを設定
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons name="list" size={24} color="#007AFF" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   const loadContent = async () => {
     try {
@@ -49,6 +76,27 @@ const ContentDetailScreen: React.FC<Props> = ({ route }) => {
   const handleOpenUrl = () => {
     if (content?.sourceUrl) {
       Linking.openURL(content.sourceUrl);
+    }
+  };
+
+  const isContentInList = (list: List) => {
+    return list.contentIds.includes(contentId);
+  };
+
+  const handleToggleList = async (list: List) => {
+    const inList = isContentInList(list);
+    try {
+      if (inList) {
+        await dispatch(removeContentFromList({ listId: list.id, contentId })).unwrap();
+      } else {
+        await dispatch(addContentToList({ listId: list.id, contentId })).unwrap();
+      }
+      // リストを再取得
+      if (user) {
+        dispatch(fetchUserLists(user.uid));
+      }
+    } catch (error) {
+      console.error('Failed to toggle list:', error);
     }
   };
 
@@ -143,6 +191,62 @@ const ContentDetailScreen: React.FC<Props> = ({ route }) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* リスト管理モーダル */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>リストに追加/削除</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={lists}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.listItem}
+                  onPress={() => handleToggleList(item)}
+                >
+                  <View style={styles.listItemLeft}>
+                    <Ionicons
+                      name={item.visibility === 'public' ? 'globe' : 'lock-closed'}
+                      size={20}
+                      color="#666"
+                    />
+                    <Text style={styles.listItemText}>{item.name}</Text>
+                  </View>
+                  <Ionicons
+                    name={
+                      isContentInList(item)
+                        ? 'checkmark-circle'
+                        : 'checkmark-circle-outline'
+                    }
+                    size={24}
+                    color={isContentInList(item) ? '#007AFF' : '#ccc'}
+                  />
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyList}>
+                  <Ionicons name="list-outline" size={48} color="#ccc" />
+                  <Text style={styles.emptyListText}>
+                    リストがありません
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -249,6 +353,60 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 16,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  listItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  listItemText: {
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 12,
+  },
+  emptyList: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 12,
   },
 });
 

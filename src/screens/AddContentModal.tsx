@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import * as Location from 'expo-location';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { createContent } from '../store/slices/contentSlice';
+import { fetchUserLists, addContentToList } from '../store/slices/listSlice';
 import { uploadImage, fetchOGMetadata } from '../services/contentService';
 import { ContentType, Location as LocationType } from '../types';
 import { Timestamp } from 'firebase/firestore';
@@ -25,6 +26,7 @@ import { Timestamp } from 'firebase/firestore';
 const AddContentModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
+  const { lists } = useAppSelector((state) => state.list);
 
   const [contentType, setContentType] = useState<ContentType>('web_page');
   const [url, setUrl] = useState('');
@@ -35,7 +37,15 @@ const AddContentModal: React.FC = () => {
   const [tags, setTags] = useState('');
   const [location, setLocation] = useState<LocationType | null>(null);
   const [locationName, setLocationName] = useState('');
+  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // ユーザーのリストを取得
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchUserLists(user.uid));
+    }
+  }, [user]);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -151,12 +161,21 @@ const AddContentModal: React.FC = () => {
       if (fileUrl) contentData.fileUrl = fileUrl;
       if (location) contentData.location = location;
 
-      await dispatch(
+      const result = await dispatch(
         createContent({
           userId: user.uid,
           contentData,
         })
       ).unwrap();
+
+      // 選択されたリストにコンテンツを追加
+      if (selectedListIds.length > 0 && result.id) {
+        await Promise.all(
+          selectedListIds.map((listId) =>
+            dispatch(addContentToList({ listId, contentId: result.id })).unwrap()
+          )
+        );
+      }
 
       Alert.alert('成功', 'コンテンツを保存しました');
       resetForm();
@@ -177,6 +196,7 @@ const AddContentModal: React.FC = () => {
     setTags('');
     setLocation(null);
     setLocationName('');
+    setSelectedListIds([]);
   };
 
   return (
@@ -343,6 +363,50 @@ const AddContentModal: React.FC = () => {
           </TouchableOpacity>
         )}
 
+        <Text style={styles.sectionTitle}>リストに追加（オプション）</Text>
+        <View style={styles.listsContainer}>
+          {lists.length > 0 ? (
+            lists.map((list) => (
+              <TouchableOpacity
+                key={list.id}
+                style={[
+                  styles.listChip,
+                  selectedListIds.includes(list.id) && styles.listChipActive,
+                ]}
+                onPress={() => {
+                  if (selectedListIds.includes(list.id)) {
+                    setSelectedListIds(selectedListIds.filter((id) => id !== list.id));
+                  } else {
+                    setSelectedListIds([...selectedListIds, list.id]);
+                  }
+                }}
+              >
+                <Ionicons
+                  name={
+                    selectedListIds.includes(list.id)
+                      ? 'checkmark-circle'
+                      : 'checkmark-circle-outline'
+                  }
+                  size={20}
+                  color={selectedListIds.includes(list.id) ? '#007AFF' : '#999'}
+                />
+                <Text
+                  style={[
+                    styles.listChipText,
+                    selectedListIds.includes(list.id) && styles.listChipTextActive,
+                  ]}
+                >
+                  {list.name}
+                </Text>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.noListsText}>
+              リストがありません。先にリストを作成してください。
+            </Text>
+          )}
+        </View>
+
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
@@ -489,6 +553,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '600',
+  },
+  listsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  listChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+  },
+  listChipActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E3F2FD',
+  },
+  listChipText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+  },
+  listChipTextActive: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  noListsText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
   },
   saveButton: {
     height: 50,

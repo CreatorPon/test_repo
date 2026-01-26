@@ -9,11 +9,20 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp } from '@react-navigation/native';
+import { MaterialTopTabNavigationProp } from '@react-navigation/material-top-tabs';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { searchContents } from '../store/slices/contentSlice';
 import ContentCard from '../components/common/ContentCard';
-import { ContentType } from '../types';
+import { ContentType, SearchTabParamList, MainTabParamList } from '../types';
+
+type KeywordSearchNavigationProp = CompositeNavigationProp<
+  MaterialTopTabNavigationProp<SearchTabParamList, 'KeywordSearch'>,
+  BottomTabNavigationProp<MainTabParamList>
+>;
 
 const CONTENT_TYPES: { value: ContentType | 'all'; label: string }[] = [
   { value: 'all', label: 'すべて' },
@@ -23,6 +32,7 @@ const CONTENT_TYPES: { value: ContentType | 'all'; label: string }[] = [
 ];
 
 const KeywordSearchScreen: React.FC = () => {
+  const navigation = useNavigation<KeywordSearchNavigationProp>();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { contents, loading } = useAppSelector((state) => state.content);
@@ -125,7 +135,15 @@ const KeywordSearchScreen: React.FC = () => {
         data={contents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ContentCard content={item} onPress={() => {}} />
+          <ContentCard
+            content={item}
+            onPress={() =>
+              navigation.navigate('Home', {
+                screen: 'ContentDetail',
+                params: { contentId: item.id },
+              })
+            }
+          />
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
